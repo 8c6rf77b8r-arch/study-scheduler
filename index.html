@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="学習スケジューラー">
+<meta name="theme-color" content="#2d4a3e">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<title>資格試験 学習スケジューラー</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+    background: #f0ede8; color: #2c2c2c; min-height: 100vh;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  header {
+    background: #2d4a3e; color: #f0ede8;
+    padding: 14px 20px; display: flex; align-items: center; gap: 10px;
+    position: sticky; top: 0; z-index: 100;
+  }
+  header h1 { font-size: 1.1rem; font-weight: 700; letter-spacing: 0.04em; }
+  .tabs {
+    background: #2d4a3e; display: flex; padding: 0 8px;
+    position: sticky; top: 52px; z-index: 99; overflow-x: auto;
+  }
+  .tab-btn {
+    background: none; border: none; cursor: pointer;
+    color: #a8c4b8; padding: 10px 14px;
+    font-size: 0.82rem; border-bottom: 3px solid transparent;
+    white-space: nowrap; transition: all 0.2s;
+  }
+  .tab-btn.active { color: #fff; border-bottom-color: #7bc4a0; }
+  .container { max-width: 900px; margin: 0 auto; padding: 14px 12px; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+  .card {
+    background: #fff; border-radius: 10px; padding: 16px; margin-bottom: 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  .card h2 {
+    font-size: 0.93rem; font-weight: 700; color: #2d4a3e;
+    margin-bottom: 14px; padding-bottom: 7px; border-bottom: 2px solid #e8f0ec;
+  }
+  .form-row { display: flex; align-items: center; gap: 10px; margin-bottom: 11px; flex-wrap: wrap; }
+  label { font-size: 0.84rem; color: #555; white-space: nowrap; min-width: 108px; }
+  input[type="text"], input[type="date"], input[type="number"] {
+    border: 1px solid #d0ccc6; border-radius: 6px; padding: 8px 11px;
+    font-size: 0.88rem; font-family: inherit; background: #fafaf8; -webkit-appearance: none;
+  }
+  input:focus { outline: none; border-color: #7bc4a0; background: #fff; }
+  input[type="number"] { width: 86px; }
+  input[type="text"] { flex: 1; min-width: 150px; }
+  input[type="date"] { width: 152px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 8px 14px; border-radius: 8px; border: none; cursor: pointer;
+    font-size: 0.855rem; font-family: inherit; font-weight: 600; transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-primary { background: #2d4a3e; color: #fff; }
+  .btn-primary:active { background: #3a6050; }
+  .btn-secondary { background: #e8f0ec; color: #2d4a3e; }
+  .btn-secondary:active { background: #d0e4d8; }
+  .btn-danger { background: #fde8e8; color: #c0392b; }
+  .btn-warn { background: #fff3cd; color: #7a5a00; }
+  .btn-sm { padding: 5px 9px; font-size: 0.78rem; border-radius: 6px; }
+  .subject-block { border: 1px solid #e0dbd5; border-radius: 8px; padding: 13px; margin-bottom: 11px; }
+  .subject-header { display: flex; align-items: center; gap: 8px; margin-bottom: 11px; }
+  .material-list { margin-left: 8px; }
+  .material-block {
+    border-left: 3px solid #e8f0ec; padding: 9px 11px; margin-bottom: 9px;
+    background: #fafaf8; border-radius: 0 6px 6px 0;
+  }
+  .material-header { display: flex; align-items: center; gap: 7px; margin-bottom: 9px; }
+  .unit-table { width: 100%; border-collapse: collapse; margin-top: 5px; }
+  .unit-table th {
+    background: #f0ede8; font-size: 0.76rem; padding: 5px 7px;
+    text-align: left; color: #666; border-bottom: 1px solid #ddd;
+  }
+  .unit-table td { padding: 4px 5px; border-bottom: 1px solid #f0ede8; }
+  .unit-table input[type="text"] { width: 100%; min-width: 0; }
+  .unit-table input[type="number"] { width: 72px; }
+  .banner {
+    padding: 11px 13px; border-radius: 8px; font-size: 0.84rem;
+    margin-bottom: 13px; line-height: 1.55;
+  }
+  .banner-warn { background: #fff3cd; color: #7a5a00; border-left: 4px solid #f0a500; }
+  .banner-ok   { background: #e8f5ee; color: #1a6637; border-left: 4px solid #7bc4a0; }
+  .banner-info { background: #e8eef5; color: #1a3660; border-left: 4px solid #5a86c4; }
+  .schedule-day {
+    border: 1px solid #e0dbd5; border-radius: 8px; padding: 11px 13px;
+    margin-bottom: 8px; background: #fff;
+  }
+  .schedule-day.today { border-color: #7bc4a0; background: #f2faf6; }
+  .schedule-day-header { display: flex; align-items: center; gap: 7px; margin-bottom: 6px; }
+  .day-date { font-weight: 700; font-size: 0.9rem; }
+  .day-badge { font-size: 0.7rem; padding: 2px 6px; border-radius: 20px; font-weight: 600; }
+  .badge-today  { background: #7bc4a0; color: #fff; }
+  .badge-reserve { background: #e8eef5; color: #5a86c4; }
+  .day-time { font-size: 0.76rem; color: #888; margin-left: auto; }
+  .unit-item {
+    font-size: 0.8rem; padding: 3px 0 3px 9px;
+    border-left: 2px solid #e0dbd5; margin-bottom: 3px; color: #444; line-height: 1.4;
+  }
+  .subject-tag {
+    font-size: 0.7rem; background: #e8f0ec; color: #2d4a3e;
+    border-radius: 3px; padding: 1px 5px; margin-right: 4px; font-weight: 600; white-space: nowrap;
+  }
+  .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 9px; margin-bottom: 13px; }
+  .stat-box { background: #fff; border-radius: 8px; padding: 13px; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+  .stat-num { font-size: 1.45rem; font-weight: 700; color: #2d4a3e; }
+  .stat-label { font-size: 0.73rem; color: #888; margin-top: 3px; }
+  .pwa-hint {
+    background: #2d4a3e; color: #e8f5ee; border-radius: 10px;
+    padding: 13px 15px; margin-bottom: 13px; font-size: 0.8rem; line-height: 1.7; display: none;
+  }
+  .pwa-hint strong { color: #7bc4a0; }
+  .preset-banner {
+    background: linear-gradient(135deg, #2d4a3e, #3a6050);
+    color: #e8f5ee; border-radius: 10px; padding: 14px 16px; margin-bottom: 13px;
+  }
+  .preset-banner h3 { font-size: 0.9rem; margin-bottom: 6px; color: #7bc4a0; }
+  .preset-banner p { font-size: 0.8rem; line-height: 1.6; opacity: 0.9; }
+  .preset-stats { display: flex; gap: 16px; margin-top: 10px; flex-wrap: wrap; }
+  .preset-stat { font-size: 0.78rem; }
+  .preset-stat strong { font-size: 1.1rem; color: #7bc4a0; display: block; }
+  .mt8 { margin-top: 8px; }
+  .mt12 { margin-top: 12px; }
+  .text-sm { font-size: 0.76rem; color: #888; }
+  .flex-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+</style>
+</head>
+<body>
+
+<header>
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#7bc4a0" stroke-width="2">
+    <rect x="3" y="4" width="18" height="18" rx="2"/>
+    <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+    <line x1="3" y1="10" x2="21" y2="10"/>
+    <circle cx="8" cy="15" r="1" fill="#7bc4a0"/><line x1="11" y1="15" x2="16" y2="15"/>
+    <circle cx="8" cy="19" r="1" fill="#7bc4a0"/><line x1="11" y1="19" x2="16" y2="19"/>
+  </svg>
+  <h1>学習スケジューラー</h1>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('settings',this)">⚙️ 設定</button>
+  <button class="tab-btn" onclick="switchTab('subjects',this)">📚 科目・教材</button>
+  <button class="tab-btn" onclick="switchTab('schedule',this)">📅 スケジュール</button>
+</div>
+
+<!-- 設定 -->
+<div id="tab-settings" class="tab-content active">
+<div class="container">
+  <div class="pwa-hint" id="pwa-hint">
+    📲 <strong>ホーム画面に追加する方法</strong><br>
+    Safariの下部「共有」ボタン（□↑）→「ホーム画面に追加」→「追加」
+  </div>
+  <div class="card">
+    <h2>試験・学習の基本設定</h2>
+    <div class="form-row">
+      <label>試験日</label>
+      <input type="date" id="examDate">
+    </div>
+    <div class="form-row">
+      <label>1日の勉強時間</label>
+      <input type="number" id="dailyMinutes" min="10" max="720" value="120">
+      <span class="text-sm">分 / 日</span>
+    </div>
+    <div class="form-row">
+      <label>全体の周回数</label>
+      <input type="number" id="laps" min="1" max="5" value="2">
+      <span class="text-sm">周</span>
+    </div>
+    <div class="form-row">
+      <label>予備日（週に）</label>
+      <input type="number" id="reserveDays" min="0" max="3" value="1">
+      <span class="text-sm">日（遅れ調整用）</span>
+    </div>
+    <div class="mt12">
+      <button class="btn btn-primary" onclick="saveSettings()">💾 保存する</button>
+    </div>
+    <div id="settings-msg" class="mt8"></div>
+  </div>
+  <div class="card">
+    <h2>💡 データについて</h2>
+    <p class="text-sm" style="line-height:1.7;color:#555;">
+      入力したデータはこのブラウザ（Safari）内に自動保存されます。<br>
+      アプリを閉じても次に開いたとき同じデータが残っています。<br><br>
+      ⚠️ ブラウザの「履歴・データを消去」をすると消えます。
+    </p>
+    <div class="mt8">
+      <button class="btn btn-warn btn-sm" onclick="resetToPreset()">🔄 プリセットデータに戻す</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- 科目・教材 -->
+<div id="tab-subjects" class="tab-content">
+<div class="container">
+  <div class="preset-banner">
+    <h3>📖 登録済み教材データ</h3>
+    <p>テキスト3冊・問題集3冊のデータが最初から入っています。<br>単元名や時間は自由に編集できます。</p>
+    <div class="preset-stats">
+      <div class="preset-stat"><strong id="stat-units">―</strong>単元数（1周）</div>
+      <div class="preset-stat"><strong id="stat-time">―</strong>総時間（1周）</div>
+    </div>
+  </div>
+  <div id="subjects-container"></div>
+  <div class="flex-row mt8">
+    <button class="btn btn-secondary" onclick="addSubject()">＋ 科目を追加</button>
+    <button class="btn btn-primary" onclick="saveSubjects()">💾 保存する</button>
+  </div>
+  <div id="subjects-msg" class="mt8"></div>
+</div>
+</div>
+
+<!-- スケジュール -->
+<div id="tab-schedule" class="tab-content">
+<div class="container">
+  <div id="schedule-summary"></div>
+  <div id="schedule-list"></div>
+</div>
+</div>
+
+<script>
+// ==================== プリセットデータ ====================
+function makePreset() {
+  function uid() { return Math.random().toString(36).slice(2,10); }
+  return {
+    settings: { examDate: '', dailyMinutes: 120, laps: 2, reserveDays: 1 },
+    subjects: [
+      {
+        id: uid(), name: 'テキスト',
+        materials: [
+          { id: uid(), name: '第1テキスト（440ページ）', units: [
+            { id: uid(), name: '第1章 簿記の概要Ⅰ', minutes: 117 },
+            { id: uid(), name: '第2章 現金預金Ⅰ', minutes: 66 },
+            { id: uid(), name: '第3章 債権債務Ⅰ', minutes: 69 },
+            { id: uid(), name: '第4章 商品売買Ⅰ', minutes: 159 },
+            { id: uid(), name: '第5章 固定資産Ⅰ', minutes: 84 },
+            { id: uid(), name: '第6章 ソフトウェアⅠ', minutes: 6 },
+            { id: uid(), name: '第7章 貸倒れⅠ', minutes: 57 },
+            { id: uid(), name: '第8章 給料等Ⅰ', minutes: 21 },
+            { id: uid(), name: '第9章 税金Ⅰ', minutes: 33 },
+            { id: uid(), name: '第10章 純資産Ⅰ', minutes: 117 },
+            { id: uid(), name: '第11章 退職給付会計Ⅰ', minutes: 9 },
+            { id: uid(), name: '第12章 社債Ⅰ', minutes: 33 },
+            { id: uid(), name: '第13章 有価証券Ⅰ', minutes: 114 },
+            { id: uid(), name: '第14章 税効果会計Ⅰ', minutes: 15 },
+            { id: uid(), name: '第15章 割引現在価値計算Ⅰ', minutes: 6 },
+            { id: uid(), name: '第16章 保険金Ⅰ', minutes: 3 },
+            { id: uid(), name: '第17章 減損会計Ⅰ', minutes: 39 },
+            { id: uid(), name: '第18章 繰延資産Ⅰ', minutes: 3 },
+          ]},
+          { id: uid(), name: '第2テキスト（416ページ）', units: [
+            { id: uid(), name: '第1章 現金預金Ⅱ', minutes: 21 },
+            { id: uid(), name: '第2章 リース会計Ⅰ', minutes: 57 },
+            { id: uid(), name: '第3章 外貨建会計Ⅰ', minutes: 123 },
+            { id: uid(), name: '第4章 退職給付会計Ⅱ', minutes: 57 },
+            { id: uid(), name: '第5章 割賦販売Ⅰ', minutes: 9 },
+            { id: uid(), name: '第6章 新株予約権社債Ⅰ', minutes: 39 },
+            { id: uid(), name: '第7章 試用販売Ⅰ', minutes: 27 },
+            { id: uid(), name: '第8章 本支店会計Ⅰ', minutes: 93 },
+            { id: uid(), name: '第9章 商品売買Ⅱ', minutes: 63 },
+            { id: uid(), name: '第10章 圧縮記帳Ⅰ', minutes: 18 },
+            { id: uid(), name: '第11章 資産除去債務Ⅰ', minutes: 45 },
+            { id: uid(), name: '第12章 委託販売・受託販売Ⅰ', minutes: 45 },
+            { id: uid(), name: '第13章 組織再編会計Ⅰ', minutes: 42 },
+            { id: uid(), name: '第14章 連結会計Ⅰ', minutes: 51 },
+            { id: uid(), name: '第15章 製造業会計Ⅰ', minutes: 36 },
+            { id: uid(), name: '第16章 会計上の変更等Ⅰ', minutes: 24 },
+            { id: uid(), name: '第17章 キャッシュ・フロー計算書Ⅰ', minutes: 42 },
+            { id: uid(), name: '第18章 有価証券Ⅱ', minutes: 15 },
+            { id: uid(), name: '第19章 ソフトウェアⅡ', minutes: 3 },
+            { id: uid(), name: '第20章 減損会計Ⅱ', minutes: 30 },
+          ]},
+          { id: uid(), name: '第3テキスト（158ページ）', units: [
+            { id: uid(), name: '第1章 帳簿組織Ⅰ', minutes: 12 },
+            { id: uid(), name: '第2章 キャッシュ・フロー計算書Ⅱ', minutes: 3 },
+            { id: uid(), name: '第3章 固定資産Ⅱ', minutes: 3 },
+            { id: uid(), name: '第4章 ストック・オプションⅠ', minutes: 21 },
+            { id: uid(), name: '第5章 連結会計Ⅱ', minutes: 27 },
+            { id: uid(), name: '第6章 税効果会計Ⅱ', minutes: 3 },
+            { id: uid(), name: '第7章 収益認識Ⅰ', minutes: 27 },
+            { id: uid(), name: '第8章 本支店会計Ⅱ', minutes: 3 },
+            { id: uid(), name: '第9章 金利スワップⅠ', minutes: 3 },
+            { id: uid(), name: '第10章 建設業会計Ⅰ', minutes: 57 },
+            { id: uid(), name: '第11章 ソフトウェアⅢ', minutes: 3 },
+            { id: uid(), name: '第12章 リース会計Ⅱ', minutes: 3 },
+          ]},
+        ]
+      },
+      {
+        id: uid(), name: '問題集',
+        materials: [
+          { id: uid(), name: '問題集①（162ページ）', units: [
+            { id: uid(), name: '仕訳①-問1〜5（現金過不足・債権債務・仮払金）', minutes: 11 },
+            { id: uid(), name: '仕訳①-問6〜10（電子記録・商品売買・手形）', minutes: 13 },
+            { id: uid(), name: '仕訳①-問11〜15（固定資産）', minutes: 15 },
+            { id: uid(), name: '仕訳①-問16〜20（銀行・貸倒・給料・引当・法人税）', minutes: 13 },
+            { id: uid(), name: '仕訳①-問21〜25（消費税・資本・剰余金・手形）', minutes: 14 },
+            { id: uid(), name: '仕訳①-問26〜30（割引・退職・社債）', minutes: 14 },
+            { id: uid(), name: '個別①-問1〜5（簿記概要：仕訳・転記・決算）', minutes: 20 },
+            { id: uid(), name: '個別①-問6〜12（補助簿・損益・開始・再振替・金額）', minutes: 20 },
+            { id: uid(), name: '個別①-問13〜21（現金・債権・商品売買）', minutes: 31 },
+            { id: uid(), name: '個別①-問22〜29（固定資産・ソフトウェア・現金）', minutes: 23 },
+            { id: uid(), name: '個別①-問30〜38（貸倒・給料・税金）', minutes: 26 },
+            { id: uid(), name: '個別①-問39〜46（税金・純資産・債権）', minutes: 30 },
+            { id: uid(), name: '個別①-問47〜51（退職給付・社債）', minutes: 11 },
+            { id: uid(), name: '総合①-問1〜2（精算表・連続個別）', minutes: 35 },
+            { id: uid(), name: '総合①-問3〜5（決算整理後残高試算表）', minutes: 105 },
+          ]},
+          { id: uid(), name: '問題集②（210ページ）', units: [
+            { id: uid(), name: '仕訳②-問1〜7（商品売買・固定資産）', minutes: 20 },
+            { id: uid(), name: '仕訳②-問8〜14（社債・商品売買・有価証券）', minutes: 23 },
+            { id: uid(), name: '仕訳②-問15〜21（有価証券・当座・社債・純資産）', minutes: 25 },
+            { id: uid(), name: '仕訳②-問22〜28（純資産・新株予約権・有価証券）', minutes: 22 },
+            { id: uid(), name: '仕訳②-問29〜34（配当・保険金・減損）', minutes: 19 },
+            { id: uid(), name: '個別②-問1〜6（商品売買・固定資産）', minutes: 20 },
+            { id: uid(), name: '個別②-問7〜10（社債・商品売買）', minutes: 15 },
+            { id: uid(), name: '個別②-問11〜18（有価証券）', minutes: 29 },
+            { id: uid(), name: '個別②-問19〜23（現金・社債）', minutes: 19 },
+            { id: uid(), name: '個別②-問24〜31（税効果・商品売買）', minutes: 30 },
+            { id: uid(), name: '個別②-問32〜36（純資産・割引・有価証券）', minutes: 25 },
+            { id: uid(), name: '個別②-問37〜43（純資産・貸倒・減損・繰延）', minutes: 43 },
+            { id: uid(), name: '総合②-問1〜3（残高試算表・連続個別）', minutes: 130 },
+            { id: uid(), name: '総合②-問4〜5（連続個別・残高試算表）', minutes: 105 },
+            { id: uid(), name: '総合②-問6〜7（連続個別・財務諸表）', minutes: 95 },
+          ]},
+          { id: uid(), name: '問題集③（266ページ）', units: [
+            { id: uid(), name: '個別③-問1〜4（現金預金・リース会計）', minutes: 21 },
+            { id: uid(), name: '個別③-問5〜10（外貨建会計）', minutes: 26 },
+            { id: uid(), name: '個別③-問11〜13（退職給付・割賦販売・外貨）', minutes: 14 },
+            { id: uid(), name: '個別③-問14〜17（新株予約権社債・試用販売）', minutes: 12 },
+            { id: uid(), name: '個別③-問18〜23（退職給付会計）', minutes: 25 },
+            { id: uid(), name: '個別③-問24〜30（本支店・商品売買）', minutes: 30 },
+            { id: uid(), name: '個別③-問31〜35（外貨・試用販売）', minutes: 24 },
+            { id: uid(), name: '個別③-問36〜39（本支店会計）', minutes: 31 },
+            { id: uid(), name: '個別③-問40〜42（新株・圧縮記帳）', minutes: 14 },
+            { id: uid(), name: '個別③-問43〜45（資産除去債務）', minutes: 15 },
+            { id: uid(), name: '確認③-問1〜5（確認問題）', minutes: 69 },
+            { id: uid(), name: '総合③-問1〜3（連続個別・残高試算表）', minutes: 150 },
+            { id: uid(), name: '総合③-問4〜5（連続個別・残高試算表）', minutes: 140 },
+            { id: uid(), name: '総合③-問6〜7（連続個別）', minutes: 110 },
+          ]},
+        ]
+      }
+    ]
+  };
+}
+
+// ==================== データ管理 ====================
+const LS_KEY = 'study_scheduler_v2';
+function uid() { return Math.random().toString(36).slice(2,10); }
+
+function loadData() {
+  try {
+    const d = JSON.parse(localStorage.getItem(LS_KEY));
+    return d || makePreset();
+  } catch(e) { return makePreset(); }
+}
+function saveData(data) { localStorage.setItem(LS_KEY, JSON.stringify(data)); }
+
+let appData = loadData();
+
+// ==================== Service Worker ====================
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
+
+// ==================== PWAヒント ====================
+if (/iP(hone|ad|od)/.test(navigator.userAgent) && /WebKit/.test(navigator.userAgent)
+    && !/(CriOS|FxiOS)/.test(navigator.userAgent)
+    && !window.matchMedia('(display-mode: standalone)').matches && !navigator.standalone) {
+  document.getElementById('pwa-hint').style.display = 'block';
+}
+
+// ==================== タブ ====================
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+  if (name === 'schedule') renderSchedule();
+  if (name === 'subjects') { renderSubjects(); updatePresetStats(); }
+  if (name === 'settings') loadSettings();
+}
+
+// ==================== 設定 ====================
+function loadSettings() {
+  const s = appData.settings;
+  document.getElementById('examDate').value = s.examDate || '';
+  document.getElementById('dailyMinutes').value = s.dailyMinutes || 120;
+  document.getElementById('laps').value = s.laps || 2;
+  document.getElementById('reserveDays').value = s.reserveDays ?? 1;
+}
+function saveSettings() {
+  appData.settings = {
+    examDate: document.getElementById('examDate').value,
+    dailyMinutes: parseInt(document.getElementById('dailyMinutes').value) || 120,
+    laps: parseInt(document.getElementById('laps').value) || 2,
+    reserveDays: parseInt(document.getElementById('reserveDays').value) ?? 1
+  };
+  saveData(appData);
+  showMsg('settings-msg', '✅ 保存しました', 'ok');
+}
+function resetToPreset() {
+  if (!confirm('教材データをプリセット（初期データ）に戻しますか？\n設定（試験日・学習時間）は残ります。')) return;
+  const preset = makePreset();
+  appData.subjects = preset.subjects;
+  saveData(appData);
+  renderSubjects();
+  updatePresetStats();
+  alert('プリセットデータに戻しました。');
+}
+
+// ==================== 科目・教材 ====================
+function updatePresetStats() {
+  let totalUnits = 0, totalMin = 0;
+  appData.subjects.forEach(s => s.materials.forEach(m => {
+    totalUnits += m.units.length;
+    totalMin += m.units.reduce((a,u) => a + (u.minutes||0), 0);
+  }));
+  document.getElementById('stat-units').textContent = totalUnits;
+  const h = Math.floor(totalMin/60), m = totalMin%60;
+  document.getElementById('stat-time').textContent = h + 'h' + (m>0?m+'m':'');
+}
+
+function renderSubjects() {
+  const container = document.getElementById('subjects-container');
+  container.innerHTML = '';
+  appData.subjects.forEach((subj, si) => {
+    const div = document.createElement('div');
+    div.className = 'card subject-block';
+    div.innerHTML = `
+      <div class="subject-header">
+        <strong style="color:#888;font-size:0.76rem;">科目 ${si+1}</strong>
+        <input type="text" style="flex:1;min-width:0" value="${esc(subj.name)}"
+          onchange="appData.subjects[${si}].name=this.value">
+        <button class="btn btn-danger btn-sm" onclick="removeSubject(${si})">✕</button>
+      </div>
+      <div class="material-list" id="mlist-${si}"></div>
+      <button class="btn btn-secondary btn-sm mt8" onclick="addMaterial(${si})">＋ 教材を追加</button>
+    `;
+    container.appendChild(div);
+    renderMaterials(si);
+  });
+}
+
+function renderMaterials(si) {
+  const container = document.getElementById('mlist-' + si);
+  if (!container) return;
+  container.innerHTML = '';
+  appData.subjects[si].materials.forEach((mat, mi) => {
+    const unitCount = mat.units.length;
+    const unitMin = mat.units.reduce((a,u)=>a+(u.minutes||0),0);
+    const div = document.createElement('div');
+    div.className = 'material-block';
+    div.innerHTML = `
+      <div class="material-header">
+        <span style="color:#888;font-size:0.76rem;">教材</span>
+        <input type="text" style="flex:1;min-width:0" value="${esc(mat.name)}"
+          onchange="appData.subjects[${si}].materials[${mi}].name=this.value">
+        <span class="text-sm" style="white-space:nowrap">${unitCount}単元 / ${Math.floor(unitMin/60)}h${unitMin%60}m</span>
+        <button class="btn btn-danger btn-sm" onclick="removeMaterial(${si},${mi})">✕</button>
+      </div>
+      <table class="unit-table">
+        <thead><tr><th>単元名</th><th>時間（分）</th><th></th></tr></thead>
+        <tbody id="units-${si}-${mi}"></tbody>
+      </table>
+      <button class="btn btn-secondary btn-sm mt8" onclick="addUnit(${si},${mi})">＋ 単元を追加</button>
+    `;
+    container.appendChild(div);
+    renderUnits(si, mi);
+  });
+}
+
+function renderUnits(si, mi) {
+  const tbody = document.getElementById(`units-${si}-${mi}`);
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  appData.subjects[si].materials[mi].units.forEach((u, ui) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input type="text" value="${esc(u.name)}"
+        onchange="appData.subjects[${si}].materials[${mi}].units[${ui}].name=this.value"></td>
+      <td><input type="number" value="${u.minutes}" min="1"
+        onchange="appData.subjects[${si}].materials[${mi}].units[${ui}].minutes=parseInt(this.value)||0"></td>
+      <td><button class="btn btn-danger btn-sm" onclick="removeUnit(${si},${mi},${ui})">✕</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function addSubject() {
+  appData.subjects.push({ id: uid(), name: `新しい科目`, materials: [
+    { id: uid(), name: '教材1', units: [{ id: uid(), name: '第1章', minutes: 60 }] }
+  ]});
+  renderSubjects(); updatePresetStats();
+}
+function removeSubject(si) {
+  if (!confirm('この科目を削除しますか？')) return;
+  appData.subjects.splice(si, 1); renderSubjects(); updatePresetStats();
+}
+function addMaterial(si) {
+  appData.subjects[si].materials.push({ id: uid(), name: '新しい教材', units: [{ id: uid(), name: '第1章', minutes: 30 }] });
+  renderMaterials(si); updatePresetStats();
+}
+function removeMaterial(si, mi) {
+  if (!confirm('この教材を削除しますか？')) return;
+  appData.subjects[si].materials.splice(mi, 1); renderMaterials(si); updatePresetStats();
+}
+function addUnit(si, mi) {
+  const units = appData.subjects[si].materials[mi].units;
+  units.push({ id: uid(), name: `第${units.length+1}章`, minutes: 30 });
+  renderUnits(si, mi); updatePresetStats();
+}
+function removeUnit(si, mi, ui) {
+  appData.subjects[si].materials[mi].units.splice(ui, 1);
+  renderUnits(si, mi); updatePresetStats();
+}
+function saveSubjects() { saveData(appData); showMsg('subjects-msg', '✅ 保存しました', 'ok'); }
+
+// ==================== スケジュール ====================
+function renderSchedule() {
+  const summaryEl = document.getElementById('schedule-summary');
+  const listEl = document.getElementById('schedule-list');
+  summaryEl.innerHTML = ''; listEl.innerHTML = '';
+
+  const s = appData.settings;
+  if (!s.examDate) {
+    summaryEl.innerHTML = `<div class="banner banner-warn">⚠️「設定」タブで試験日を入力してください。</div>`;
+    return;
+  }
+  const today = new Date(); today.setHours(0,0,0,0);
+  const examDate = new Date(s.examDate); examDate.setHours(0,0,0,0);
+  if (examDate <= today) {
+    summaryEl.innerHTML = `<div class="banner banner-warn">⚠️ 試験日が今日以前です。設定を確認してください。</div>`;
+    return;
+  }
+
+  const laps = s.laps || 2;
+  const dailyMin = s.dailyMinutes || 120;
+  const reservePerWeek = s.reserveDays ?? 1;
+
+  const baseUnits = [];
+  appData.subjects.forEach(subj => {
+    subj.materials.forEach(mat => {
+      mat.units.forEach(u => {
+        baseUnits.push({ subjName: subj.name, matName: mat.name, unitName: u.name, minutes: u.minutes || 0 });
+      });
+    });
+  });
+
+  const allUnits = [];
+  for (let lap = 1; lap <= laps; lap++) {
+    baseUnits.forEach(u => allUnits.push({ ...u, lap }));
+  }
+
+  const totalMin = allUnits.reduce((s, u) => s + u.minutes, 0);
+
+  const days = [];
+  const cur = new Date(today);
+  while (cur < examDate) {
+    const dow = cur.getDay();
+    const isReserve = (reservePerWeek >= 1 && dow === 6) ||
+                      (reservePerWeek >= 2 && dow === 5) ||
+                      (reservePerWeek >= 3 && dow === 0);
+    days.push({ date: new Date(cur), dateStr: cur.toISOString().slice(0,10), isReserve });
+    cur.setDate(cur.getDate() + 1);
+  }
+
+  const studyDays = days.filter(d => !d.isReserve);
+  const totalAvailMin = studyDays.length * dailyMin;
+  const canFinish = totalAvailMin >= totalMin;
+  const totalH = Math.floor(totalMin/60), totalM = totalMin%60;
+  const daysToExam = Math.ceil((examDate - today) / 86400000);
+
+  summaryEl.innerHTML = `
+    <div class="stats-grid">
+      <div class="stat-box"><div class="stat-num">${daysToExam}</div><div class="stat-label">試験まであと（日）</div></div>
+      <div class="stat-box"><div class="stat-num">${studyDays.length}</div><div class="stat-label">学習できる日数</div></div>
+      <div class="stat-box"><div class="stat-num">${totalH}h${totalM>0?totalM+'m':''}</div><div class="stat-label">総学習時間（${laps}周）</div></div>
+      <div class="stat-box"><div class="stat-num">${allUnits.length}</div><div class="stat-label">総単元数（${laps}周）</div></div>
+    </div>
+    ${canFinish
+      ? `<div class="banner banner-ok">✅ 1日 ${dailyMin}分 で、試験日までに ${laps} 周できます！</div>`
+      : `<div class="banner banner-warn">⚠️ 1日 ${dailyMin}分 では間に合いません。<br>必要：${totalH}h${totalM}m ／ 確保できる：${Math.floor(totalAvailMin/60)}h${totalAvailMin%60}m<br>1日の学習時間を増やすか、周回数を減らしてください。</div>`
+    }
+  `;
+
+  let unitIdx = 0;
+  const todayStr = today.toISOString().slice(0,10);
+  const DOW = ['日','月','火','水','木','金','土'];
+  const html = [];
+
+  days.forEach(day => {
+    const isToday = day.dateStr === todayStr;
+    const dow = DOW[day.date.getDay()];
+    const dateLabel = `${day.date.getMonth()+1}/${day.date.getDate()}（${dow}）`;
+
+    if (day.isReserve) {
+      html.push(`<div class="schedule-day${isToday?' today':''}">
+        <div class="schedule-day-header">
+          <span class="day-date">${dateLabel}</span>
+          <span class="day-badge badge-reserve">📌 予備日</span>
+        </div>
+        <span class="text-sm">遅れた分の調整・復習に使いましょう。</span>
+      </div>`);
+      return;
+    }
+
+    let remaining = dailyMin;
+    const todayUnits = [];
+    let dayTotal = 0;
+    while (unitIdx < allUnits.length && remaining > 0) {
+      todayUnits.push(allUnits[unitIdx]);
+      dayTotal += allUnits[unitIdx].minutes;
+      remaining -= allUnits[unitIdx].minutes;
+      unitIdx++;
+    }
+
+    const h = Math.floor(dayTotal/60), m = dayTotal%60;
+    const items = todayUnits.map(u =>
+      `<div class="unit-item">
+        <span class="subject-tag">${esc(u.subjName)}</span>${esc(u.matName)} › ${esc(u.unitName)}<span style="color:#aaa;font-size:0.76em"> ${u.minutes}分${laps>1?' ['+u.lap+'周目]':''}</span>
+      </div>`
+    ).join('');
+
+    html.push(`<div class="schedule-day${isToday?' today':''}">
+      <div class="schedule-day-header">
+        <span class="day-date">${dateLabel}</span>
+        ${isToday?'<span class="day-badge badge-today">今日</span>':''}
+        <span class="day-time">${h>0?h+'h':''}${m>0?m+'m':'0m'} / ${dailyMin}分</span>
+      </div>
+      ${items || '<span class="text-sm">この日のノルマはありません。</span>'}
+    </div>`);
+  });
+
+  listEl.innerHTML = html.join('');
+}
+
+// ==================== ユーティリティ ====================
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function showMsg(id, msg, type) {
+  const el = document.getElementById(id);
+  el.innerHTML = `<div class="banner banner-${type==='ok'?'ok':'warn'}">${msg}</div>`;
+  setTimeout(() => { el.innerHTML=''; }, 3000);
+}
+
+// ==================== 初期化 ====================
+loadSettings();
+renderSubjects();
+updatePresetStats();
+</script>
+</body>
+</html>
